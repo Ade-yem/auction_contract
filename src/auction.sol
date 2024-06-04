@@ -9,17 +9,19 @@ contract Auction {
         string title;
         string description;
         uint256 highestBid;
+        uint256 minPrice;
         bool sold;
         address seller;
         address highestBidder;
         uint time;
     }
     
-    uint256 public immutable NUM_ITEMS_ALLOWED;
     string public name;
+    uint public immutable NUM_ITEMS_ALLOWED;
     uint public numItems = 0;
     uint private bidTime;
     mapping(string => auctionItem) private auctionRecords;
+    // mapping(address => bool) private sellers;
     mapping(address => uint256) private amountToBePaid;
     event numberOfItemsAdded(uint256  numberOfItemsAllowed);
     event addedAuctionItem(address creator, string title);
@@ -33,34 +35,56 @@ contract Auction {
         bidTime = _bidTime;
         emit numberOfItemsAdded(_number);
     }
-    function addItem(string memory _title, string memory _description) public {
+
+
+
+    // function registerSeller() public {
+    //     sellers[msg.sender] = true;
+    // }
+    function addItem(string memory _title, string memory _description, uint256 minPrice, address seller) public {
         require(numItems <= NUM_ITEMS_ALLOWED, "Slot is full");
         bytes32 id = _title.generateID(_description);
-        auctionItem memory item = auctionItem(id, _title, _description, 0, false, msg.sender, address(0), block.timestamp);
+        auctionItem memory item = auctionItem(id, _title, _description, 0, minPrice, false, seller, address(0), block.timestamp);
         auctionRecords[_title] = item;
         emit addedAuctionItem(msg.sender, _title);
     }
+    function getItem(string memory _title) public returns(auctionItem memory) {
+        auctionItem memory item = auctionRecords[_title];
+        return (item);
+    }
     function payMoney(string memory _item) public payable {
         auctionItem memory item = auctionRecords[_item];
+        require(msg.sender == item.highestBidder, "You are not the highest bidder");
         require(msg.value == item.highestBid, "Insufficient fund baba, add more or face jail term");
         amountToBePaid[item.seller] = msg.value - msg.value/10;
         emit ItemBought(msg.sender, msg.value);
     }
-    function bidForItem(uint256 amount, string memory _item) public {
+    function getSellerAmount(address seller) public returns(uint256) {
+        return (amountToBePaid[seller]);
+    }
+    function bidForItem(address bidder, uint256 amount, string memory _item, uint time) public {
         auctionItem memory item = auctionRecords[_item];
-        require(item.time + bidTime > block.timestamp, "Bid for this item is over");
+        require(item.time + bidTime > time, "Bid for this item is over");
+        require(amount >= item.minPrice, "Bid must be above the min price");
+        // require(item.time + bidTime > block.timestamp, "Bid for this item is over");
         if (amount > item.highestBid) {
             item.highestBid = amount;
-            item.highestBidder = msg.sender;
+            item.highestBidder = bidder;
             auctionRecords[_item] = item;
         }
     }
-    function paySeller() public {
-        if (amountToBePaid[msg.sender] <= 0) {
+    function showWiner(string memory _item, uint time) public returns (address) {
+        auctionItem memory item = auctionRecords[_item];
+        // require(item.time + bidTime < block.timestamp, "Bid for this item is not over");
+        require(item.time + bidTime < time, "Bid for this item is not over");
+        return (item.highestBidder);
+    }
+    function paySeller(address seller) public {
+        if (amountToBePaid[seller] <= 0) {
             revert("You cannot be paid");
         }
-        payable(msg.sender).transfer(amountToBePaid[msg.sender]);
-        emit sellerPaid(msg.sender, amountToBePaid[msg.sender]);
-        amountToBePaid[msg.sender] = 0;
+        payable(seller).transfer(amountToBePaid[seller]);
+        emit sellerPaid(seller, amountToBePaid[seller]);
+        amountToBePaid[seller] = 0;
     }  
 }
