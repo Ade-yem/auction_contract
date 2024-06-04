@@ -38,7 +38,6 @@ contract Auction {
         bytes32 id = _title.generateID(_description);
         auctionItem memory item = auctionItem(id, _title, _description, 0, false, msg.sender, address(0), block.timestamp);
         auctionRecords[_title] = item;
-        sellers.push(msg.sender);
         emit addedAuctionItem(msg.sender, _title);
     }
     function payMoney(string memory _item) public payable {
@@ -56,12 +55,12 @@ contract Auction {
             auctionRecords[_item] = item;
         }
     }
-    function paySeller() payable public {
+    function paySeller() public {
         if (amountToBePaid[msg.sender] <= 0) {
-            revert("You cannot be paid")
+            revert("You cannot be paid");
         }
         payable(msg.sender).transfer(amountToBePaid[msg.sender]);
-        emit sellerPaid(sellers[i], amountToBePaid[sellers[i]]);
-        amountToBePaid[sellers[i]] = 0;
+        emit sellerPaid(msg.sender, amountToBePaid[msg.sender]);
+        amountToBePaid[msg.sender] = 0;
     }  
 }

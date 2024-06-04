@@ -5,19 +5,30 @@ import {Test, console} from "forge-std/Test.sol";
 import {Auction} from "../src/auction.sol";
 
 contract AuctionTest is Test {
-    Counter public counter;
+    Auction public auction;
+    address bidder1;
+    address bidder2;
+    address seller;
+    uint bidTime = block.timestamp + 5 minutes;
 
     function setUp() public {
-        address bidder = 0x01;
+        bidder1 = address(0x01);
+        bidder2 = address(0x02);
+        seller = address(0x03);
+        auction = Auction(20, "Adeyemi & Co Auction House", bidTime);
     }
 
-    function test_Increment() public {
-        counter.increment();
-        assertEq(counter.number(), 1);
+    function test_addItem() public {
+
+    }
+    function test_payMoney() public {
+        
+    }
+    function test_bidForItem() public {
+
+    }
+    function test_paySeller() public {
+
     }
 
-    function testFuzz_SetNumber(uint256 x) public {
-        counter.setNumber(x);
-        assertEq(counter.number(), x);
-    }
 }
