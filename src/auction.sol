@@ -48,32 +48,31 @@ contract Auction {
         auctionRecords[_title] = item;
         emit addedAuctionItem(msg.sender, _title);
     }
-    function getItem(string memory _title) public returns(auctionItem memory) {
+    function getItem(string memory _title) public view returns(auctionItem memory) {
         auctionItem memory item = auctionRecords[_title];
         return (item);
     }
     function payMoney(string memory _item) public payable {
         auctionItem memory item = auctionRecords[_item];
-        require(msg.sender == item.highestBidder, "You are not the highest bidder");
+        // require(msg.sender == item.highestBidder, "You are not the highest bidder");
         require(msg.value == item.highestBid, "Insufficient fund baba, add more or face jail term");
         amountToBePaid[item.seller] = msg.value - msg.value/10;
         emit ItemBought(msg.sender, msg.value);
     }
-    function getSellerAmount(address seller) public returns(uint256) {
+    function getSellerAmount(address seller) public view returns(uint256) {
         return (amountToBePaid[seller]);
     }
-    function bidForItem(address bidder, uint256 amount, string memory _item, uint time) public {
+    function bidForItem(address bidder, uint256 amount, string memory _item) public {
         auctionItem memory item = auctionRecords[_item];
-        require(item.time + bidTime > time, "Bid for this item is over");
         require(amount >= item.minPrice, "Bid must be above the min price");
-        // require(item.time + bidTime > block.timestamp, "Bid for this item is over");
+        require(item.time + bidTime > block.timestamp, "Bid for this item is over");
         if (amount > item.highestBid) {
             item.highestBid = amount;
             item.highestBidder = bidder;
             auctionRecords[_item] = item;
         }
     }
-    function showWiner(string memory _item, uint time) public returns (address) {
+    function showWiner(string memory _item, uint time) public view returns (address) {
         auctionItem memory item = auctionRecords[_item];
         // require(item.time + bidTime < block.timestamp, "Bid for this item is not over");
         require(item.time + bidTime < time, "Bid for this item is not over");
