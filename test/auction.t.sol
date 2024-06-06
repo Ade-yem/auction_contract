@@ -15,14 +15,26 @@ contract AuctionTest is Test {
         bidder1 = address(0x01);
         bidder2 = address(0x02);
         seller = address(0x03);
-        uint256 minimumPrice = 2 * 10 ** 18;
+        uint256 minimumPrice = 200;
         auction = new Auction(20, "Adeyemi & Co Auction House", bidTime);
         vm.prank(seller);
         auction.addItem("Duplex house", "Four bedroom fully detached duplex", minimumPrice, seller);
     }
 
+    function testNameOfCompany() public view {
+        assertEq(auction.name(), "Adeyemi & Co Auction House");
+    }
+
+    function test_registerBidder() public {
+        vm.prank(bidder1);
+        uint256 amount = 5 ether;
+        auction.registerBidder{value: 5}();
+        assertEq(auction.bidders(bidder1), amount);
+    }
+
+
     function test_addItem() public {
-        uint256 minPrice = 2 * 10 ** 18;
+        uint256 minPrice = 2;
         auction.addItem("Self contained house", "One bedroom self contained", minPrice, seller);
         Auction.auctionItem memory item = auction.getItem("Self contained house");
         assertEq(minPrice, item.minPrice);
@@ -30,18 +42,17 @@ contract AuctionTest is Test {
     }
 
     function test_bidForItem() public {
-        // auction.addItem("Duplex house", "Four bedroom fully detached duplex", minPrice);
-        uint256 amount = 4 * 10 ** 18;
+        uint256 amount = 4;
         vm.prank(bidder1);
         vm.warp(block.timestamp + 2 minutes);
-        auction.bidForItem(bidder1, 3 * 10 ** 18, "Duplex house");
+        auction.bidForItem(bidder1, amount, "Duplex house");
         Auction.auctionItem memory item = auction.getItem("Duplex house");
         assertEq(item.highestBidder, bidder1);
     }
 
     function test_bidTimeIsOver() public {
         vm.prank(bidder2);
-        uint256 amount = 4 * 10 ** 18;
+        uint256 amount = 4;
         vm.warp(block.timestamp + 30 minutes);
         vm.expectRevert("Bid for this item is over");
         auction.bidForItem(bidder2, amount, "Duplex house");
@@ -50,9 +61,9 @@ contract AuctionTest is Test {
     function test_bidNotEnough() public {
         vm.warp(block.timestamp + 1 minutes);
         vm.expectRevert("Bid must be above the min price");
-        auction.bidForItem(bidder2, 1 * 10 ** 18, "Duplex house");
+        auction.bidForItem(bidder2, 1, "Duplex house");
 
-        uint256 amount = 4 * 10 ** 18;
+        uint256 amount = 4;
         auction.bidForItem(bidder2, amount, "Duplex house");
         Auction.auctionItem memory item = auction.getItem("Duplex house");
         assertEq(item.highestBid, amount);
@@ -62,7 +73,7 @@ contract AuctionTest is Test {
 
 
     function test_payMoney() public {
-        uint256 amount = 5 * 10 ** 18;
+        uint256 amount = 5;
         uint256 expectedSellerPayment = amount - (amount / 10);
         vm.prank(bidder2);
         auction.bidForItem(bidder2, amount, "Duplex house");
@@ -72,7 +83,7 @@ contract AuctionTest is Test {
     }
     
     function test_paySeller() public {
-        uint256 amount = 5 * 10 ** 18;
+        uint256 amount = 5;
         uint256 expectedSellerPayment = amount - (amount / 10);
         vm.prank(bidder2);
         auction.bidForItem(bidder2, amount, "Duplex house");
