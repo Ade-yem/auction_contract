@@ -160,7 +160,7 @@ contract Auction {
         require(msg.sender == item.highestBidder, "You are not the highest bidder");
         withdrawToken(msg.sender, item.highestBid);
         amountToBePaid[item.seller] = item.highestBid - item.highestBid / 10;
-        bidders[msg.sender] -= msg.value;
+        bidders[msg.sender] -= item.highestBid;
         emit ItemBought(msg.sender, item.highestBid);
     }
 

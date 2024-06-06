@@ -77,7 +77,7 @@ contract AuctionTest is Test {
         uint256 expectedSellerPayment = amount - (amount / 10);
         vm.prank(bidder2);
         auction.bidForItem(bidder2, amount, "Duplex house");
-        auction.payMoney{value: amount}("Duplex house");
+        auction.payMoney("Duplex house");
         uint256 sellerAmount = auction.getSellerAmount(seller);
         assertEq(sellerAmount, expectedSellerPayment);
     }
@@ -87,7 +87,7 @@ contract AuctionTest is Test {
         uint256 expectedSellerPayment = amount - (amount / 10);
         vm.prank(bidder2);
         auction.bidForItem(bidder2, amount, "Duplex house");
-        auction.payMoney{value: amount}("Duplex house");
+        auction.payMoney("Duplex house");
         uint256 sellerAmount = auction.getSellerAmount(seller);
         assertEq(sellerAmount, expectedSellerPayment);
         auction.paySeller(seller);

@@ -10,15 +10,15 @@ interface newIERC20 is IERC20 {
     function mint(address to, uint256 amount) external;
 }
 
-contract AdeToken is ERC20, AccessControl {
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+contract AdeToken is ERC20 {
+    // bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
-    constructor(address minter) ERC20("Ade token", "ADETK") {
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(MINTER_ROLE, minter);
+    constructor() ERC20("Ade token", "ADETK") {
+        // _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        // _grantRole(MINTER_ROLE, minter);
     }
 
-    function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
+    function mint(address to, uint256 amount) external {
         _mint(to, amount);
     }
 }
