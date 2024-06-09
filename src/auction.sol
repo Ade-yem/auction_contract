@@ -22,7 +22,8 @@ contract Auction {
     
     string public name; // name of the auction
     uint public immutable NUM_ITEMS_ALLOWED; // number of items allowed in the auction
-    uint private bidTime; // time allowed for bidding for items
+    uint public bidTime; // time allowed for bidding for items
+    uint numItems = 0; // number of items added to the auction
     // one ether == 50 tokens
     uint256 private multiplier = 50; // a multiplier for the amount of token that can be bought per ether
     uint256 public totalSupply = 0; // total supply of tokens
@@ -50,6 +51,10 @@ contract Auction {
         totalSupply += 2000;
     }
 
+    function changeBidTime(uint time) public {
+        bidTime = time;
+    }
+
     /**
      * @dev Mint token
      */
@@ -74,7 +79,6 @@ contract Auction {
 
     /**
      * @dev withdraw token from the owner and adds it to the total supply
-     * @param from address of the owner
      * @param amount amount of tokens to be withdrawn 
      */
     function withdrawToken(uint256 amount) private {
@@ -128,6 +132,7 @@ contract Auction {
         auctionItem memory item = auctionItem(id, _title, _description, 0, minPrice, false, seller, address(0), block.timestamp);
         auctionRecords[_title] = item;
         listOfAuctionItems.push(bytes(_title));
+        numItems += 1;
         emit addedAuctionItem(msg.sender, _title);
     }
 
@@ -195,5 +200,28 @@ contract Auction {
         auctionItem memory item = auctionRecords[_item];
         require(item.time + bidTime < block.timestamp, "Bid for this item is not over");
         return (item.highestBidder);
+    }
+
+    /**
+     * @dev Pay seller his money
+     * Emits {sellerPaid} event
+     */
+    function paySeller(address seller) public {
+        if (amountToBePaid[seller] <= 0) {
+            revert("You cannot be paid");
+        }
+        transferToken(seller, amountToBePaid[seller]);
+        emit sellerPaid(seller, amountToBePaid[seller]);
+        amountToBePaid[seller] = 0;
+    }
+
+    /**
+     * @dev convert the tokens to ethers
+     * Emits {returnedBidderMoney} event
+     */
+    function cashOut(uint256 amount) public {
+        uint256 amt = (amount / 50) * 1 ether;
+        withdrawToken(amount);
+        payable(msg.sender).transfer(amt);
     }
 }

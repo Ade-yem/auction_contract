@@ -25,3 +25,6 @@ contract AdeToken is ERC20 {
         _mint(to, amount);
     }
 }
+
+// contract address 0x3876c57dBCDaCfE288d6D5f875268c916C7b0c3f
+
