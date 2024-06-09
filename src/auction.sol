@@ -2,10 +2,8 @@
 pragma solidity ^0.8.0;
 import "./library.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./token.sol";
 
-interface newIERC20 is IERC20 {
-    function mint(address to, uint256 amount) external;
-}
 
 contract Auction {
     using stringManipulation for string;
@@ -22,14 +20,13 @@ contract Auction {
         uint time;
     }
     
-    string public name;
-    uint public immutable NUM_ITEMS_ALLOWED;
-    uint public numItems = 0;
-    uint private bidTime;
+    string public name; // name of the auction
+    uint public immutable NUM_ITEMS_ALLOWED; // number of items allowed in the auction
+    uint private bidTime; // time allowed for bidding for items
     // one ether == 50 tokens
-    uint256 private multiplier = 50; 
-    uint256 totalSupply = 0;
-    bytes[] public listOfAuctionItems;
+    uint256 private multiplier = 50; // a multiplier for the amount of token that can be bought per ether
+    uint256 public totalSupply = 0; // total supply of tokens
+    bytes[] public listOfAuctionItems; // list of items added to the auction
     mapping(string => auctionItem) private auctionRecords;
     mapping(address => uint256) public bidders;
     mapping(address => uint256) private amountToBePaid;
@@ -37,11 +34,12 @@ contract Auction {
     event addedAuctionItem(address creator, string title);
     event ItemBought(address buyer, uint256 amount);
     event ItemBid(address bidder, uint256 amount);
+    event ItemAuctionEnded(address winner, uint256 amount);
     event sellerPaid(address seller, uint256 amount);
     event bidderRegistered(address bidder, uint256 amount);
     event returnedBidderMoney(address bidder, uint256 amount);
 
-    newIERC20 public token;
+    AdeToken public token = new AdeToken();
 
     constructor(uint256 _number, string memory _name, uint _bidTime) {
         NUM_ITEMS_ALLOWED = _number;
@@ -61,11 +59,9 @@ contract Auction {
     }
 
     /**
-     * @dev transfer token to bidder. If current supply is not enough,
-     * it mints more
-     * Requirements:
-     * - `to` address of the bidder
-     * - `amount` amount of tokens to be sent 
+     * @dev transfer token to bidder. If current supply is not enough, it mints more
+     * @param to - address of the bidder
+     * @param amount - amount of tokens to be sent 
      * Emits {returnedBidderMoney} event
      */
     function transferToken(address to, uint256 amount) private {
@@ -78,13 +74,11 @@ contract Auction {
 
     /**
      * @dev withdraw token from the owner and adds it to the total supply
-     * it mints more
-     * Requirements:
-     * - `from` address of the owner
-     * - `amount` amount of tokens to be withdrawn 
+     * @param from address of the owner
+     * @param amount amount of tokens to be withdrawn 
      */
-    function withdrawToken(address from, uint256 amount) private {
-        token.transferFrom(from, address(this), amount);
+    function withdrawToken(uint256 amount) private {
+        token.transfer(address(this), amount);
         totalSupply += amount;
     }
 
@@ -95,9 +89,20 @@ contract Auction {
     function registerBidder() payable public {
         require(msg.value > 0, "You cannot send zero funds");
         uint256 amount = (msg.value / 1 ether) * 50;
-        bidders[msg.sender] = amount;
         transferToken(msg.sender, amount);
+        bidders[msg.sender] = amount;
         emit bidderRegistered(msg.sender, amount);
+    }
+
+    /**
+     * @dev Bidder get more tokens
+     */
+    function getMoreTokens() payable public {
+        require(msg.value > 0, "You cannot send zero funds");
+        require(bidders[msg.sender] > 0, "You have to register first");
+        uint256 amount = (msg.value / 1 ether) * 50;
+        transferToken(msg.sender, amount);
+        bidders[msg.sender] += amount;
     }
 
     /**
@@ -107,7 +112,7 @@ contract Auction {
     function returnBidderMoney() public {
         require(bidders[msg.sender] > 0, "We do not have your money");
         uint256 amount = (bidders[msg.sender] / 50) * 1 ether;
-        withdrawToken(msg.sender, bidders[msg.sender]);
+        withdrawToken(bidders[msg.sender]);
         bidders[msg.sender] = 0;
         payable(msg.sender).transfer(amount);
         emit returnedBidderMoney(msg.sender, amount);
@@ -130,8 +135,9 @@ contract Auction {
      * @dev bid for item
      * Emits {ItemBid} event
      */
-    function bidForItem(address bidder, uint256 amount, string memory _item) public {
+    function bidForItem(uint256 amount, string memory _item) public {
         auctionItem memory item = auctionRecords[_item];
+        address bidder = msg.sender;
         require(amount >= item.minPrice, "Bid must be above the min price");
         require(bidders[bidder] >= amount, "Bros !, you no get money!!!");
         require(item.time + bidTime > block.timestamp, "Bid for this item is over");
@@ -139,6 +145,7 @@ contract Auction {
             item.highestBid = amount;
             item.highestBidder = bidder;
             auctionRecords[_item] = item;
+            bidders[bidder] -= amount;
         }
         emit ItemBid(bidder, amount);
     }
@@ -147,8 +154,18 @@ contract Auction {
      * @dev Returns auction item based on its `_title`
      */
     function getItem(string memory _title) public view returns(auctionItem memory) {
-        auctionItem memory item = auctionRecords[_title];
-        return (item);
+        return (auctionRecords[_title]);
+    }
+    
+    /**
+     * @dev Returns auction item based on its `_title`
+     */
+    function triggerSold(string memory _title) public {
+        if (block.timestamp < auctionRecords[_title].time + bidTime) {
+            revert("Auction has not ended");
+        }
+        auctionRecords[_title].sold = true;
+        emit ItemAuctionEnded(auctionRecords[_title].highestBidder, auctionRecords[_title].highestBid);
     }
 
     /**
@@ -158,7 +175,7 @@ contract Auction {
     function payMoney(string memory _item) public {
         auctionItem memory item = auctionRecords[_item];
         require(msg.sender == item.highestBidder, "You are not the highest bidder");
-        withdrawToken(msg.sender, item.highestBid);
+        withdrawToken(item.highestBid);
         amountToBePaid[item.seller] = item.highestBid - item.highestBid / 10;
         bidders[msg.sender] -= item.highestBid;
         emit ItemBought(msg.sender, item.highestBid);
@@ -178,28 +195,5 @@ contract Auction {
         auctionItem memory item = auctionRecords[_item];
         require(item.time + bidTime < block.timestamp, "Bid for this item is not over");
         return (item.highestBidder);
-    }
-
-    /**
-     * @dev Pay seller his money
-     * Emits {sellerPaid} event
-     */
-    function paySeller(address seller) public {
-        if (amountToBePaid[seller] <= 0) {
-            revert("You cannot be paid");
-        }
-        transferToken(seller, amountToBePaid[seller]);
-        emit sellerPaid(seller, amountToBePaid[seller]);
-        amountToBePaid[seller] = 0;
-    }
-
-    /**
-     * @dev cashout
-     * Emits {returnedBidderMoney} event
-     */
-    function cashOut(uint256 amount) public {
-        uint256 amt = (amount / 50) * 1 ether;
-        withdrawToken(msg.sender, amount);
-        payable(msg.sender).transfer(amt);
     }
 }

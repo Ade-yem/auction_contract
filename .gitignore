@@ -12,3 +12,14 @@ docs/
 
 # Dotenv file
 .env
+.deps/npm/@openzeppelin/contracts/access/AccessControl.sol
+.deps/npm/@openzeppelin/contracts/access/IAccessControl.sol
+.deps/npm/@openzeppelin/contracts/interfaces/draft-IERC6093.sol
+.deps/npm/@openzeppelin/contracts/token/ERC20/ERC20.sol
+.deps/npm/@openzeppelin/contracts/token/ERC20/IERC20.sol
+.deps/npm/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol
+.deps/npm/@openzeppelin/contracts/utils/Context.sol
+.deps/npm/@openzeppelin/contracts/utils/introspection/ERC165.sol
+.deps/npm/@openzeppelin/contracts/utils/introspection/IERC165.sol
+.deps/remix-tests/remix_accounts.sol
+.deps/remix-tests/remix_tests.sol

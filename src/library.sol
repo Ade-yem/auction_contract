@@ -14,6 +14,12 @@ library stringManipulation {
     function compare(string memory str1, string memory str2) internal pure returns (bool) {
         return(keccak256(abi.encodePacked(str1)) == keccak256(abi.encodePacked(str2)));
     }
+
+    /**
+     * creates a bytes32 array from two strings
+     * @param str1 first string
+     * @param str2 second string
+     */
     function generateID(string memory str1, string memory str2) internal pure returns (bytes32) {
         return(keccak256(abi.encodePacked(str1, str2)));
     }
